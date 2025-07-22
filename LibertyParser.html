@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liberty File Parser</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-bg: #f5f7fa;
+            --dark-bg: #2c3e50;
+            --card-bg: #ffffff;
+            --border-radius: 8px;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--secondary-color);
+            font-weight: 600;
+        }
+        
+        .section {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+        }
+        
+        .section-header {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e6ed;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        button {
+            background: linear-gradient(to right, var(--secondary-color), var(--primary-color));
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+            opacity: 0.9;
+        }
+        
+        button.secondary {
+            background: #ecf0f1;
+            color: var(--primary-color);
+        }
+        
+        button.secondary:hover {
+            background: #d5dbdb;
+        }
+        
+        .file-input {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .file-input input[type="file"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            flex: 1;
+            min-width: 250px;
+        }
+        
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 15px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--secondary-color);
+        }
+        
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .filter-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .filter-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background-color: #e8f4fd;
+            border-radius: var(--border-radius);
+            margin-top: 10px;
+        }
+        
+        .filter-status .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .filter-tag {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .filter-tag .close {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        pre {
+            background-color: var(--primary-color);
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 14px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .debug {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f0f3f5;
+            border-radius: 4px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .results-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .cell-list-panel {
+            flex: 1;
+            min-width: 280px;
+            max-width: 350px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            max-height: 700px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .cell-detail-panel {
+            flex: 3;
+            min-width: 300px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+        }
+        
+        .cell-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .cell-search {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .cell-list-container {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .cell-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .cell-item:hover {
+            background-color: #f0f7ff;
+        }
+        
+        .cell-item.active {
+            background-color: #e1f0fa;
+            border-left: 4px solid var(--secondary-color);
+        }
+        
+        .cell-name {
+            font-weight: 600;
+        }
+        
+        .cell-area {
+            background-color: #e1f0fa;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+        }
+        
+        .cell-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e6ed;
+        }
+        
+        .cell-stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            flex: 1;
+            min-width: 120px;
+            padding: 15px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            border-top: 3px solid var(--secondary-color);
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--secondary-color);
+            margin: 5px 0;
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+        
+        .tab {
+            display: flex;
+            flex-wrap: wrap;
+            border-bottom: 2px solid var(--secondary-color);
+            margin-bottom: 20px;
+        }
+        
+        .tab button {
+            background: none;
+            color: var(--primary-color);
+            border: none;
+            padding: 10px 15px;
+            font-size: 14px;
+            border-radius: 5px 5px 0 0;
+            position: relative;
+            margin: 0 2px;
+            box-shadow: none;
+        }
+        
+        .tab button:hover {
+            background: rgba(52, 152, 219, 0.1);
+            transform: none;
+        }
+        
+        .tab button.active {
+            background: var(--secondary-color);
+            color: white;
+        }
+        
+        .tabcontent {
+            display: none;
+            padding: 15px 0;
+        }
+        
+        .visible {
+            display: block;
+        }
+        
+        .pin-info {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--secondary-color);
+        }
+        
+        .pin-header {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        
+        .pin-props {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .prop {
+            background: #e1f0fa;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .timing-info, .power-info {
+            margin: 15px 0;
+            padding: 12px;
+            background: #edf7ff;
+            border-radius: 5px;
+        }
+        
+        .table-info {
+            margin: 10px 0 0 20px;
+            padding: 10px;
+            background: #d6eaf8;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        
+        .highlight {
+            background-color: #fffacd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        .no-cell-selected {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7f8c8d;
+        }
+        
+        .no-cell-selected i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #bdc3c7;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .results-container {
+                flex-direction: column;
+            }
+            
+            .cell-list-panel, .cell-detail-panel {
+                max-width: 100%;
+            }
+            
+            .filters {
+                flex-direction: column;
+            }
+            
+            .file-input {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background-color: var(--success-color);
+            color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(200%);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.error {
+            background-color: var(--accent-color);
+        }
+        
+        .notification.warning {
+            background-color: var(--warning-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="notification" id="notification">
+        <span id="notification-message">Operation completed successfully</span>
+    </div>
+    
+    <div class="container">
+        <h1>Liberty File Parser</h1>
+        
+        <div class="section">
+            <div class="section-header">
+                <h2>Load Liberty File</h2>
+                <button onclick="resetFilters()" class="secondary">Reset Filters</button>
+            </div>
+            <div class="file-input">
+                <input type="file" id="libFileInput" accept=".lib">
+                <button onclick="loadLibertyFile()">Parse Liberty File</button>
+                <button onclick="loadSampleFile()">Load Sample File</button>
+            </div>
+            
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="cellList">Filter by Cells (comma separated):</label>
+                    <input type="text" id="cellList" placeholder="e.g., AND2X1, OR2X1">
+                </div>
+                <div class="filter-group">
+                    <label for="pinList">Filter by Pins (comma separated):</label>
+                    <input type="text" id="pinList" placeholder="e.g., A, B, Z">
+                </div>
+                <div class="filter-group">
+                    <label for="leakageThreshold">Leakage Threshold (pW):</label>
+                    <input type="number" id="leakageThreshold" placeholder="e.g., 1000" value="1000">
+                </div>
+            </div>
+            
+            <div id="filterStatus" class="filter-status" style="display: none;">
+                <strong>Active Filters:</strong>
+                <div class="active-filters" id="activeFilters"></div>
+            </div>
+            
+            <div id="debugInfo" class="debug"></div>
+        </div>
+        
+        <div class="section" id="resultsSection" style="display:none;">
+            <h2 class="section-header">Analysis Results</h2>
+            
+            <div class="results-container">
+                <div class="cell-list-panel">
+                    <div class="cell-list-header">
+                        <h3>Cell List</h3>
+                        <span id="cellCount">0 cells</span>
+                    </div>
+                    <input type="text" class="cell-search" id="cellSearch" placeholder="Search cells...">
+                    <div class="cell-list-container" id="cellListContainer"></div>
+                </div>
+                
+                <div class="cell-detail-panel">
+                    <div id="noCellSelected" class="no-cell-selected">
+                        <i>📁</i>
+                        <h3>No Cell Selected</h3>
+                        <p>Select a cell from the list to view details</p>
+                    </div>
+                    
+                    <div id="cellDetail" style="display:none;">
+                        <div class="cell-detail-header">
+                            <h3 id="selectedCellName">Cell Name</h3>
+                            <div class="cell-stats">
+                                <div class="stat-card">
+                                    <div class="stat-label">Area</div>
+                                    <div class="stat-value" id="cellAreaStat">0.0</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">Leakage Power</div>
+                                    <div class="stat-value" id="cellLeakageStat">0 pW</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">Pin Count</div>
+                                    <div class="stat-value" id="cellPinCount">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="tab">
+                            <button class="tablinks active" onclick="openTab(event, 'overviewTab')">Overview</button>
+                            <button class="tablinks" onclick="openTab(event, 'pinsTab')">Pin Information</button>
+                            <button class="tablinks" onclick="openTab(event, 'rawDataTab')">Raw Data</button>
+                        </div>
+                        
+                        <div id="overviewTab" class="tabcontent visible">
+                            <h4>Cell Overview</h4>
+                            <div id="overviewResult"></div>
+                        </div>
+                        
+                        <div id="pinsTab" class="tabcontent">
+                            <h4>Pin Information</h4>
+                            <div id="pinsResult"></div>
+                        </div>
+                        
+                        <div id="rawDataTab" class="tabcontent">
+                            <h4>Raw Parsed Data</h4>
+                            <pre id="rawDataResult"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample Liberty file content for demonstration
+        const sampleLibertyContent = `library (sample_lib) {
+            delay_model : table_lookup;
+            time_unit : "1ns";
+            voltage_unit : "1V";
+            current_unit : "1mA";
+            leakage_power_unit : "1nW";
+            
+            cell (AND2X1) {
+                area : 5.2;
+                cell_leakage_power : 824.496502;
+                pin (A) {
+                    direction : input;
+                    capacitance : 0.0021;
+                }
+                pin (B) {
+                    direction : input;
+                    capacitance : 0.0023;
+                }
+                pin (Z) {
+                    direction : output;
+                    function : "A&B";
+                    timing() {
+                        related_pin : "A B";
+                        timing_sense : positive_unate;
+                        cell_rise(delay_template) {
+                            index_1 ("0.1, 0.3, 0.7");
+                            index_2 ("0.01, 0.03, 0.1");
+                            values ("0.12, 0.15, 0.21", "0.14, 0.16, 0.23", "0.17, 0.19, 0.26");
+                        }
+                    }
+                }
+            }
+            
+            cell (OR2X1) {
+                area : 5.5;
+                cell_leakage_power : 932.718;
+                pin (A) {
+                    direction : input;
+                    capacitance : 0.0020;
+                }
+                pin (B) {
+                    direction : input;
+                    capacitance : 0.0022;
+                }
+                pin (Z) {
+                    direction : output;
+                    function : "A|B";
+                    internal_power() {
+                        related_pin : "A";
+                        rise_power(energy_template) {
+                            index_1 ("0.1, 0.3, 0.7");
+                            values ("0.25, 0.28, 0.35");
+                        }
+                    }
+                }
+            }
+            
+            cell (NAND3X2) {
+                area : 6.8;
+                cell_leakage_power : 1120.45;
+                pin (A) {
+                    direction : input;
+                    capacitance : 0.0018;
+                }
+                pin (B) {
+                    direction : input;
+                    capacitance : 0.0019;
+                }
+                pin (C) {
+                    direction : input;
+                    capacitance : 0.0020;
+                }
+                pin (Y) {
+                    direction : output;
+                    function : "!(A&B&C)";
+                }
+            }
+            
+            cell (DFFRS_X1) {
+                area : 18.5;
+                cell_leakage_power : 2450.78;
+                pin (D) {
+                    direction : input;
+                    capacitance : 0.0025;
+                }
+                pin (CLK) {
+                    direction : input;
+                    capacitance : 0.0031;
+                }
+                pin (Q) {
+                    direction : output;
+                    function : "IQ";
+                    timing() {
+                        timing_type : rising_edge;
+                        related_pin : "CLK";
+                    }
+                }
+                pin (QN) {
+                    direction : output;
+                    function : "!IQ";
+                }
+            }
+        }`;
+
+        // Liberty Parser Class
+        class LibertyParser {
+            constructor(libContent, cellList = [], pinList = [], debug = false) {
+                this.debug = debug;
+                this.libContent = libContent;
+                this.cellList = cellList;
+                this.pinList = pinList;
+                this.libDic = {};
+                this.stats = {
+                    totalCells: 0,
+                    totalPins: 0,
+                    maxLeakage: 0,
+                    minLeakage: Infinity,
+                    avgLeakage: 0,
+                    inputPins: 0,
+                    outputPins: 0
+                };
+                
+                this.debugPrint('* Liberty File Loaded');
+                
+                if (this.cellList.length > 0) {
+                    this.debugPrint('* Specified Cell List: ' + this.cellList.join(', '));
+                }
+                
+                if (this.pinList.length > 0) {
+                    this.debugPrint('* Specified Pin List: ' + this.pinList.join(', '));
+                }
+                
+                // Parse the liberty file
+                const groupList = this.libertyParser(this.libContent);
+                this.libDic = this.organizeData(groupList);
+                this.calculateStats();
+            }
+            
+            debugPrint(message) {
+                if (this.debug) {
+                    const currentTime = new Date().toISOString().replace('T', ' ').substr(0, 19);
+                    console.log('DEBUG [' + currentTime + ']: ' + message);
+                    document.getElementById('debugInfo').innerHTML += 
+                        'DEBUG [' + currentTime + ']: ' + message + '<br>';
+                }
+            }
+            
+            getLastOpenedGroupNum(openedGroupNumList) {
+                let lastOpenedGroupNum = -1;
+                
+                if (openedGroupNumList.length > 0) {
+                    lastOpenedGroupNum = openedGroupNumList[openedGroupNumList.length - 1];
+                }
+                
+                return lastOpenedGroupNum;
+            }
+            
+            libertyParser(libContent) {
+                const lines = libContent.split('\n');
+                let groupList = [];
+                let openedGroupNumList = [];
+                let lastOpenedGroupNum = -1;
+                let groupListNum = 0;
+                
+                // For multi-line handling
+                let multiLinesString = '';
+                let commentMark = false;
+                
+                this.debugPrint('>>> Parsing liberty file...');
+                const startTime = performance.now();
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    
+                    if (commentMark) {
+                        if (line.includes('*/')) {
+                            commentMark = false;
+                        }
+                        continue;
+                    }
+                    
+                    // Handle multi-line strings
+                    if (line.endsWith('\\')) {
+                        multiLinesString += line.slice(0, -1).trim();
+                        continue;
+                    } else if (multiLinesString) {
+                        multiLinesString += line;
+                        if (!line.endsWith(';')) {
+                            console.error('*Error*: Line ' + (i+1) + ': multi-lines is not finished rightly!');
+                            console.error('         ' + line);
+                            multiLinesString = '';
+                            continue;
+                        }
+                    }
+                    
+                    const currentLine = multiLinesString || line;
+                    multiLinesString = '';
+                    
+                    // Skip empty lines
+                    if (!currentLine) continue;
+                    
+                    // Check for group start: type (name) {
+                    const groupStartMatch = currentLine.match(/^\s*(\S+)\s*\((.*?)\)\s*\{\s*$/);
+                    if (groupStartMatch) {
+                        const groupDepth = currentLine.match(/^\s*/)[0].length;
+                        const groupType = groupStartMatch[1];
+                        const groupName = groupStartMatch[2];
+                        
+                        lastOpenedGroupNum = this.getLastOpenedGroupNum(openedGroupNumList);
+                        
+                        const currentGroupDic = {
+                            fatherGroupNum: lastOpenedGroupNum,
+                            depth: groupDepth,
+                            type: groupType,
+                            name: groupName
+                        };
+                        
+                        groupList.push(currentGroupDic);
+                        openedGroupNumList.push(groupListNum);
+                        groupListNum++;
+                        lastOpenedGroupNum = this.getLastOpenedGroupNum(openedGroupNumList);
+                        continue;
+                    }
+                    
+                    // Check for group end: }
+                    if (currentLine.match(/^\s*\}\s*$/)) {
+                        openedGroupNumList.pop();
+                        lastOpenedGroupNum = this.getLastOpenedGroupNum(openedGroupNumList);
+                        continue;
+                    }
+                    
+                    // Check for simple attribute: key : value;
+                    const simpleAttrMatch = currentLine.match(/^\s*(\S+)\s*:\s*(.+?)\s*;\s*$/);
+                    if (simpleAttrMatch && lastOpenedGroupNum !== -1) {
+                        const key = simpleAttrMatch[1];
+                        const value = simpleAttrMatch[2];
+                        
+                        if (groupList[lastOpenedGroupNum][key] !== undefined) {
+                            // Handle multiple attributes with same key
+                            if (Array.isArray(groupList[lastOpenedGroupNum][key])) {
+                                groupList[lastOpenedGroupNum][key].push(value);
+                            } else {
+                                groupList[lastOpenedGroupNum][key] = [groupList[lastOpenedGroupNum][key], value];
+                            }
+                        } else {
+                            groupList[lastOpenedGroupNum][key] = value;
+                        }
+                        continue;
+                    }
+                    
+                    // Check for complex attribute: key (valueList);
+                    const complexAttrMatch = currentLine.match(/^\s*(\S+)\s*(\(.+?\))\s*;\s*$/);
+                    if (complexAttrMatch && lastOpenedGroupNum !== -1) {
+                        const key = complexAttrMatch[1];
+                        const valueList = complexAttrMatch[2];
+                        
+                        if (groupList[lastOpenedGroupNum][key] !== undefined) {
+                            if (Array.isArray(groupList[lastOpenedGroupNum][key])) {
+                                groupList[lastOpenedGroupNum][key].push(valueList);
+                            } else {
+                                groupList[lastOpenedGroupNum][key] = [groupList[lastOpenedGroupNum][key], valueList];
+                            }
+                        } else {
+                            groupList[lastOpenedGroupNum][key] = valueList;
+                        }
+                        continue;
+                    }
+                    
+                    // Check for comment start
+                    if (currentLine.match(/^\s*\/\*/)) {
+                        if (!currentLine.includes('*/')) {
+                            commentMark = true;
+                        }
+                        continue;
+                    }
+                    
+                    // If we get here, the line wasn't recognized
+                    console.warn('*Warning*: Line ' + (i+1) + ': Unrecognizable line!');
+                    console.warn('         ' + currentLine);
+                }
+                
+                const endTime = performance.now();
+                this.debugPrint('    Done');
+                this.debugPrint(`    Parse time: ${lines.length} lines, ${(endTime - startTime).toFixed(2)} ms.`);
+                
+                return groupList;
+            }
+            
+            organizeData(groupList) {
+                this.debugPrint('>>> Re-organizing data structure...');
+                
+                for (let i = groupList.length - 1; i > 0; i--) {
+                    const groupDic = groupList[i];
+                    const fatherGroupNum = groupDic.fatherGroupNum;
+                    
+                    if (fatherGroupNum !== undefined && fatherGroupNum !== -1) {
+                        if (!groupList[fatherGroupNum].group) {
+                            groupList[fatherGroupNum].group = [];
+                        }
+                        
+                        groupList[fatherGroupNum].group.unshift(groupDic);
+                    }
+                }
+                
+                this.debugPrint('    Done');
+                return groupList[0];
+            }
+            
+            calculateStats() {
+                const cells = this.getCellList();
+                this.stats.totalCells = cells.length;
+                
+                let totalLeakage = 0;
+                let pinCount = 0;
+                
+                for (const cell of cells) {
+                    const leakage = this.getCellLeakagePower([cell])[cell];
+                    if (leakage) {
+                        const leakageValue = parseFloat(leakage) || 0;
+                        totalLeakage += leakageValue;
+                        
+                        if (leakageValue > this.stats.maxLeakage) {
+                            this.stats.maxLeakage = leakageValue;
+                        }
+                        if (leakageValue < this.stats.minLeakage) {
+                            this.stats.minLeakage = leakageValue;
+                        }
+                    }
+                    
+                    const pins = this.getLibPinInfo([cell], []);
+                    if (pins[cell] && pins[cell].pin) {
+                        for (const pin in pins[cell].pin) {
+                            pinCount++;
+                            const direction = pins[cell].pin[pin].direction;
+                            if (direction === 'input') this.stats.inputPins++;
+                            if (direction === 'output') this.stats.outputPins++;
+                        }
+                    }
+                }
+                
+                this.stats.totalPins = pinCount;
+                this.stats.avgLeakage = totalLeakage / this.stats.totalCells;
+            }
+            
+            // Application functions
+            getUnit() {
+                const unitDic = {};
+                
+                for (const key in this.libDic) {
+                    if (key.endsWith('_unit')) {
+                        unitDic[key] = this.libDic[key];
+                    }
+                }
+                
+                return unitDic;
+            }
+            
+            getCellList() {
+                const cellList = [];
+                
+                if (this.libDic.group) {
+                    for (const libGroupDic of this.libDic.group) {
+                        if (libGroupDic.type === 'cell') {
+                            cellList.push(libGroupDic.name);
+                        }
+                    }
+                }
+                
+                return cellList;
+            }
+            
+            getCellArea(cellList = []) {
+                const cellAreaDic = {};
+                
+                if (this.libDic.group) {
+                    for (const groupDic of this.libDic.group) {
+                        if (groupDic.type === 'cell') {
+                            const cellName = groupDic.name;
+                            
+                            if (cellList.length === 0 || cellList.includes(cellName)) {
+                                if (groupDic.area) {
+                                    cellAreaDic[cellName] = groupDic.area;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Ensure all requested cells are in the result
+                for (const cellName of cellList) {
+                    if (!(cellName in cellAreaDic)) {
+                        cellAreaDic[cellName] = '';
+                    }
+                }
+                
+                return cellAreaDic;
+            }
+            
+            getCellLeakagePower(cellList = []) {
+                const cellLeakagePowerDic = {};
+                
+                if (this.libDic.group) {
+                    for (const groupDic of this.libDic.group) {
+                        if (groupDic.type === 'cell') {
+                            const cellName = groupDic.name;
+                            
+                            if (cellList.length === 0 || cellList.includes(cellName)) {
+                                // Check for direct cell_leakage_power attribute
+                                if (groupDic.cell_leakage_power) {
+                                    cellLeakagePowerDic[cellName] = groupDic.cell_leakage_power;
+                                }
+                                
+                                // Also check for leakage_power groups
+                                if (groupDic.group) {
+                                    for (const cellGroupDic of groupDic.group) {
+                                        if (cellGroupDic.type === 'leakage_power') {
+                                            if (cellGroupDic.value) {
+                                                if (!cellLeakagePowerDic[cellName]) {
+                                                    cellLeakagePowerDic[cellName] = cellGroupDic.value;
+                                                } else {
+                                                    // If multiple, add together
+                                                    cellLeakagePowerDic[cellName] = 
+                                                        (parseFloat(cellLeakagePowerDic[cellName]) || 0) + 
+                                                        (parseFloat(cellGroupDic.value) || 0);
+                                                    cellLeakagePowerDic[cellName] = cellLeakagePowerDic[cellName].toString();
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                return cellLeakagePowerDic;
+            }
+            
+            // Pin information extraction methods
+            _getTimingGroupInfo(groupDic) {
+                const timingDic = {};
+                
+                if (groupDic.type === 'timing') {
+                    if (groupDic.related_pin) {
+                        timingDic.related_pin = groupDic.related_pin;
+                    }
+                    
+                    if (groupDic.related_pg_pin) {
+                        timingDic.related_pg_pin = groupDic.related_pg_pin;
+                    }
+                    
+                    if (groupDic.timing_sense) {
+                        timingDic.timing_sense = groupDic.timing_sense;
+                    }
+                    
+                    if (groupDic.timing_type) {
+                        timingDic.timing_type = groupDic.timing_type;
+                    }
+                    
+                    if (groupDic.when) {
+                        timingDic.when = groupDic.when;
+                    }
+                    
+                    if (groupDic.group) {
+                        timingDic.table_type = {};
+                        
+                        for (const timingLevelGroupDic of groupDic.group) {
+                            const timingLevelGroupType = timingLevelGroupDic.type;
+                            timingDic.table_type[timingLevelGroupType] = {};
+                            
+                            if (timingLevelGroupDic.name) {
+                                timingDic.table_type[timingLevelGroupType].template_name = timingLevelGroupDic.name;
+                            }
+                            
+                            if (timingLevelGroupDic.sigma_type) {
+                                timingDic.table_type[timingLevelGroupType].sigma_type = timingLevelGroupDic.sigma_type;
+                            }
+                            
+                            if (timingLevelGroupDic.index_1) {
+                                timingDic.table_type[timingLevelGroupType].index_1 = timingLevelGroupDic.index_1;
+                            }
+                            
+                            if (timingLevelGroupDic.index_2) {
+                                timingDic.table_type[timingLevelGroupType].index_2 = timingLevelGroupDic.index_2;
+                            }
+                            
+                            if (timingLevelGroupDic.values) {
+                                timingDic.table_type[timingLevelGroupType].values = timingLevelGroupDic.values;
+                            }
+                        }
+                    }
+                }
+                
+                return timingDic;
+            }
+            
+            _getInternalPowerGroupInfo(groupDic) {
+                const internalPowerDic = {};
+                
+                if (groupDic.type === 'internal_power') {
+                    if (groupDic.related_pin) {
+                        internalPowerDic.related_pin = groupDic.related_pin;
+                    }
+                    
+                    if (groupDic.related_pg_pin) {
+                        internalPowerDic.related_pg_pin = groupDic.related_pg_pin;
+                    }
+                    
+                    if (groupDic.when) {
+                        internalPowerDic.when = groupDic.when;
+                    }
+                    
+                    if (groupDic.group) {
+                        internalPowerDic.table_type = {};
+                        
+                        for (const internalPowerLevelGroupDic of groupDic.group) {
+                            const internalPowerLevelGroupType = internalPowerLevelGroupDic.type;
+                            internalPowerDic.table_type[internalPowerLevelGroupType] = {};
+                            
+                            if (internalPowerLevelGroupDic.index_1) {
+                                internalPowerDic.table_type[internalPowerLevelGroupType].index_1 = internalPowerLevelGroupDic.index_1;
+                            }
+                            
+                            if (internalPowerLevelGroupDic.index_2) {
+                                internalPowerDic.table_type[internalPowerLevelGroupType].index_2 = internalPowerLevelGroupDic.index_2;
+                            }
+                            
+                            if (internalPowerLevelGroupDic.values) {
+                                internalPowerDic.table_type[internalPowerLevelGroupType].values = internalPowerLevelGroupDic.values;
+                            }
+                        }
+                    }
+                }
+                
+                return internalPowerDic;
+            }
+            
+            _getPinInfo(groupDic) {
+                const pinDic = {
+                    timing: [],
+                    internal_power: []
+                };
+                
+                // Extract pin attributes: direction, function, capacitance
+                if (groupDic.direction) {
+                    pinDic.direction = groupDic.direction;
+                }
+                
+                if (groupDic.function) {
+                    pinDic.function = groupDic.function;
+                }
+                
+                if (groupDic.capacitance) {
+                    pinDic.capacitance = groupDic.capacitance;
+                }
+                
+                if (groupDic.type === 'pin' && groupDic.group) {
+                    for (const pinGroupDic of groupDic.group) {
+                        if (pinGroupDic.type === 'timing') {
+                            const timingDic = this._getTimingGroupInfo(pinGroupDic);
+                            pinDic.timing.push(timingDic);
+                        } else if (pinGroupDic.type === 'internal_power') {
+                            const internalPowerDic = this._getInternalPowerGroupInfo(pinGroupDic);
+                            pinDic.internal_power.push(internalPowerDic);
+                        }
+                    }
+                }
+                
+                return pinDic;
+            }
+            
+            getLibPinInfo(cellList = [], pinList = []) {
+                const libPinDic = {};
+                
+                if (this.libDic.group) {
+                    for (const libGroupDic of this.libDic.group) {
+                        if (libGroupDic.type === 'cell') {
+                            const cellName = libGroupDic.name;
+                            
+                            if (cellList.length > 0 && !cellList.includes(cellName)) {
+                                continue;
+                            }
+                            
+                            if (libGroupDic.group) {
+                                for (const cellGroupDic of libGroupDic.group) {
+                                    if (cellGroupDic.type === 'pin') {
+                                        const pinName = cellGroupDic.name;
+                                        
+                                        if (pinList.length > 0 && !pinList.includes(pinName)) {
+                                            continue;
+                                        }
+                                        
+                                        if (!libPinDic[cellName]) {
+                                            libPinDic[cellName] = {};
+                                        }
+                                        
+                                        if (!libPinDic[cellName].pin) {
+                                            libPinDic[cellName].pin = {};
+                                        }
+                                        
+                                        const pinDic = this._getPinInfo(cellGroupDic);
+                                        libPinDic[cellName].pin[pinName] = pinDic;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                return libPinDic;
+            }
+            
+            getCellData(cellName) {
+                if (!this.libDic.group) return null;
+                
+                for (const groupDic of this.libDic.group) {
+                    if (groupDic.type === 'cell' && groupDic.name === cellName) {
+                        return groupDic;
+                    }
+                }
+                
+                return null;
+            }
+        }
+
+        // UI Functions
+        let currentParser = null;
+        let currentCell = null;
+        let currentFilters = {
+            cells: [],
+            pins: [],
+            leakageThreshold: null
+        };
+        
+        function showNotification(message, type = 'success', duration = 3000) {
+            const notification = document.getElementById('notification');
+            const messageEl = document.getElementById('notification-message');
+            
+            messageEl.textContent = message;
+            notification.className = 'notification ' + type;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, duration);
+        }
+        
+        function resetFilters() {
+            document.getElementById('cellList').value = '';
+            document.getElementById('pinList').value = '';
+            document.getElementById('leakageThreshold').value = '1000';
+            
+            currentFilters = {
+                cells: [],
+                pins: [],
+                leakageThreshold: 1000
+            };
+            
+            updateFilterStatus();
+            
+            if (currentParser) {
+                displayCellList(currentParser);
+            }
+            
+            showNotification('All filters have been reset', 'success');
+        }
+        
+        function updateFilterStatus() {
+            const activeFiltersEl = document.getElementById('activeFilters');
+            const filterStatusEl = document.getElementById('filterStatus');
+            activeFiltersEl.innerHTML = '';
+            
+            let hasFilters = false;
+            
+            // Cell filters
+            if (currentFilters.cells.length > 0) {
+                hasFilters = true;
+                currentFilters.cells.forEach(cell => {
+                    const tag = document.createElement('div');
+                    tag.className = 'filter-tag';
+                    tag.innerHTML = `Cells: ${cell} <span class="close" onclick="removeFilter('cells', '${cell}')">×</span>`;
+                    activeFiltersEl.appendChild(tag);
+                });
+            }
+            
+            // Pin filters
+            if (currentFilters.pins.length > 0) {
+                hasFilters = true;
+                currentFilters.pins.forEach(pin => {
+                    const tag = document.createElement('div');
+                    tag.className = 'filter-tag';
+                    tag.innerHTML = `Pins: ${pin} <span class="close" onclick="removeFilter('pins', '${pin}')">×</span>`;
+                    activeFiltersEl.appendChild(tag);
+                });
+            }
+            
+            // Leakage threshold
+            if (currentFilters.leakageThreshold) {
+                hasFilters = true;
+                const tag = document.createElement('div');
+                tag.className = 'filter-tag';
+                tag.innerHTML = `Leakage ≤ ${currentFilters.leakageThreshold}pW <span class="close" onclick="removeFilter('leakage')">×</span>`;
+                activeFiltersEl.appendChild(tag);
+            }
+            
+            filterStatusEl.style.display = hasFilters ? 'flex' : 'none';
+        }
+        
+        function removeFilter(type, value = null) {
+            switch(type) {
+                case 'cells':
+                    if (value) {
+                        currentFilters.cells = currentFilters.cells.filter(c => c !== value);
+                        document.getElementById('cellList').value = currentFilters.cells.join(', ');
+                    }
+                    break;
+                case 'pins':
+                    if (value) {
+                        currentFilters.pins = currentFilters.pins.filter(p => p !== value);
+                        document.getElementById('pinList').value = currentFilters.pins.join(', ');
+                    }
+                    break;
+                case 'leakage':
+                    currentFilters.leakageThreshold = null;
+                    document.getElementById('leakageThreshold').value = '';
+                    break;
+            }
+            
+            updateFilterStatus();
+            
+            if (currentParser) {
+                displayCellList(currentParser);
+            }
+        }
+        
+        function loadLibertyFile() {
+            const fileInput = document.getElementById('libFileInput');
+            const cellListInput = document.getElementById('cellList').value;
+            const pinListInput = document.getElementById('pinList').value;
+            const leakageThreshold = document.getElementById('leakageThreshold').value;
+            
+            if (fileInput.files.length === 0) {
+                showNotification('Please select a liberty file first!', 'error');
+                return;
+            }
+            
+            // Update current filters
+            currentFilters = {
+                cells: cellListInput ? cellListInput.split(',').map(cell => cell.trim()) : [],
+                pins: pinListInput ? pinListInput.split(',').map(pin => pin.trim()) : [],
+                leakageThreshold: leakageThreshold ? parseFloat(leakageThreshold) : null
+            };
+            
+            updateFilterStatus();
+            
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const content = e.target.result;
+                
+                try {
+                    currentParser = new LibertyParser(content, currentFilters.cells, currentFilters.pins, true);
+                    
+                    // Display results
+                    document.getElementById('resultsSection').style.display = 'block';
+                    
+                    // Display cell list
+                    displayCellList(currentParser);
+                    
+                    showNotification('Liberty file parsed successfully!');
+                    
+                } catch (error) {
+                    console.error('Error parsing liberty file:', error);
+                    showNotification('Error parsing liberty file: ' + error.message, 'error');
+                }
+            };
+            
+            reader.readAsText(file);
+        }
+        
+        function loadSampleFile() {
+            const cellListInput = document.getElementById('cellList').value;
+            const pinListInput = document.getElementById('pinList').value;
+            const leakageThreshold = document.getElementById('leakageThreshold').value;
+            
+            // Update current filters
+            currentFilters = {
+                cells: cellListInput ? cellListInput.split(',').map(cell => cell.trim()) : [],
+                pins: pinListInput ? pinListInput.split(',').map(pin => pin.trim()) : [],
+                leakageThreshold: leakageThreshold ? parseFloat(leakageThreshold) : null
+            };
+            
+            updateFilterStatus();
+            
+            try {
+                currentParser = new LibertyParser(sampleLibertyContent, currentFilters.cells, currentFilters.pins, true);
+                
+                // Display results
+                document.getElementById('resultsSection').style.display = 'block';
+                
+                // Display cell list
+                displayCellList(currentParser);
+                
+                showNotification('Sample file loaded successfully!');
+                
+            } catch (error) {
+                console.error('Error parsing sample file:', error);
+                showNotification('Error parsing sample file: ' + error.message, 'error');
+            }
+        }
+
+        function displayCellList(parser) {
+            const cellListContainer = document.getElementById('cellListContainer');
+            const cellCount = document.getElementById('cellCount');
+            let cells = parser.getCellList();
+            const areas = parser.getCellArea(cells);
+            const leakages = parser.getCellLeakagePower(cells);
+            
+            // Apply filters in sequence
+            let filteredCells = [...cells];
+            
+            // Cell name filter
+            if (currentFilters.cells.length > 0) {
+                const cellFilters = currentFilters.cells.map(c => c.toLowerCase().trim());
+                filteredCells = filteredCells.filter(cell => 
+                    cellFilters.some(filter => 
+                        cell.toLowerCase().includes(filter)
+                    )
+                );
+            }
+            
+            // Pin name filter
+            if (currentFilters.pins.length > 0) {
+                const pinFilters = currentFilters.pins.map(p => p.toLowerCase().trim());
+                filteredCells = filteredCells.filter(cell => {
+                    const cellData = parser.getCellData(cell);
+                    if (!cellData || !cellData.group) return false;
+                    
+                    // Find all pins in this cell
+                    const cellPins = cellData.group
+                        .filter(group => group.type === 'pin')
+                        .map(pinGroup => pinGroup.name.toLowerCase());
+                    
+                    // Check if any pin matches our filters
+                    return pinFilters.some(filter => 
+                        cellPins.some(pin => pin.includes(filter))
+                    );
+                });
+            }
+            
+            // Leakage power filter
+            if (currentFilters.leakageThreshold) {
+                const units = parser.getUnit();
+                const leakagePowerUnit = units.leakage_power_unit || '1nW';
+                
+                filteredCells = filteredCells.filter(cell => {
+                    const leakage = leakages[cell];
+                    if (!leakage) return false;
+                    
+                    let leakageValue = parseFloat(leakage);
+                    if (isNaN(leakageValue)) return false;
+                    
+                    // Convert to pW based on unit
+                    if (leakagePowerUnit === '1nW') {
+                        leakageValue *= 1000; // nW to pW
+                    } else if (leakagePowerUnit === '1uW') {
+                        leakageValue *= 1000000; // uW to pW
+                    } else if (leakagePowerUnit === '1mW') {
+                        leakageValue *= 1000000000; // mW to pW
+                    }
+                    
+                    return leakageValue <= currentFilters.leakageThreshold;
+                });
+            }
+            
+            cellCount.textContent = `${filteredCells.length} cells`;
+            cellListContainer.innerHTML = '';
+            
+            if (filteredCells.length === 0) {
+                cellListContainer.innerHTML = '<div class="no-cell-selected"><p>No cells match the current filters</p></div>';
+                document.getElementById('noCellSelected').style.display = 'block';
+                document.getElementById('cellDetail').style.display = 'none';
+                return;
+            }
+            
+            filteredCells.forEach(cellName => {
+                const areaValue = areas[cellName] || 'N/A';
+                const cellItem = document.createElement('div');
+                cellItem.className = 'cell-item';
+                cellItem.dataset.cellName = cellName;
+                cellItem.innerHTML = `
+                    <span class="cell-name">${cellName}</span>
+                    <span class="cell-area">area: ${areaValue}</span>
+                `;
+                
+                cellItem.addEventListener('click', () => {
+                    document.querySelectorAll('.cell-item').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    cellItem.classList.add('active');
+                    showCellDetails(cellName);
+                });
+                
+                cellListContainer.appendChild(cellItem);
+            });
+            
+            // Add search functionality
+            document.getElementById('cellSearch').addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                document.querySelectorAll('.cell-item').forEach(item => {
+                    const cellName = item.dataset.cellName.toLowerCase();
+                    item.style.display = cellName.includes(searchTerm) ? 'flex' : 'none';
+                });
+            });
+            
+            // Auto-select first cell if available
+            if (filteredCells.length > 0) {
+                document.querySelector('.cell-item').classList.add('active');
+                showCellDetails(filteredCells[0]);
+            } else {
+                document.getElementById('noCellSelected').style.display = 'block';
+                document.getElementById('cellDetail').style.display = 'none';
+            }
+        }
+
+
+        // function displayCellList(parser) {
+        //     const cellListContainer = document.getElementById('cellListContainer');
+        //     const cellCount = document.getElementById('cellCount');
+        //     let cells = parser.getCellList();
+        //     const areas = parser.getCellArea(cells);
+        //     const leakages = parser.getCellLeakagePower(cells);
+            
+        //     // Apply filters
+        //     if (currentFilters.cells.length > 0) {
+        //         cells = cells.filter(cell => 
+        //             currentFilters.cells.some(filterCell => 
+        //                 cell.toLowerCase().includes(filterCell.toLowerCase())
+        //             )
+        //         );
+        //     }
+            
+        //     if (currentFilters.pins.length > 0) {
+        //         cells = cells.filter(cell => {
+        //             const pins = parser.getLibPinInfo([cell], []);
+        //             if (pins[cell] && pins[cell].pin) {
+        //                 const pinNames = Object.keys(pins[cell].pin);
+        //                 return currentFilters.pins.some(filterPin => 
+        //                     pinNames.some(pin => 
+        //                         pin.toLowerCase().includes(filterPin.toLowerCase())
+        //                     )
+        //                 );
+        //             }
+        //             return false;
+        //         });
+        //     }
+            
+        //     if (currentFilters.leakageThreshold) {
+        //         const units = parser.getUnit();
+        //         const leakagePowerUnit = units.leakage_power_unit || '1nW';
+                
+        //         cells = cells.filter(cell => {
+        //             const leakage = leakages[cell];
+        //             if (!leakage) return false;
+                    
+        //             let leakageValue = parseFloat(leakage);
+        //             if (isNaN(leakageValue)) return false;
+                    
+        //             // Convert to pW based on unit
+        //             if (leakagePowerUnit === '1nW') {
+        //                 leakageValue *= 1000; // nW to pW
+        //             } else if (leakagePowerUnit === '1uW') {
+        //                 leakageValue *= 1000000; // uW to pW
+        //             } else if (leakagePowerUnit === '1mW') {
+        //                 leakageValue *= 1000000000; // mW to pW
+        //             }
+                    
+        //             return leakageValue <= currentFilters.leakageThreshold;
+        //         });
+        //     }
+            
+        //     cellCount.textContent = `${cells.length} cells`;
+        //     cellListContainer.innerHTML = '';
+            
+        //     if (cells.length === 0) {
+        //         cellListContainer.innerHTML = '<div class="no-cell-selected"><p>No cells match the current filters</p></div>';
+        //         document.getElementById('noCellSelected').style.display = 'block';
+        //         document.getElementById('cellDetail').style.display = 'none';
+        //         return;
+        //     }
+            
+        //     cells.forEach(cellName => {
+        //         const areaValue = areas[cellName] || 'N/A';
+        //         const cellItem = document.createElement('div');
+        //         cellItem.className = 'cell-item';
+        //         cellItem.dataset.cellName = cellName;
+        //         cellItem.innerHTML = `
+        //             <span class="cell-name">${cellName}</span>
+        //             <span class="cell-area">area: ${areaValue}</span>
+        //         `;
+                
+        //         cellItem.addEventListener('click', () => {
+        //             // Remove active class from all items
+        //             document.querySelectorAll('.cell-item').forEach(item => {
+        //                 item.classList.remove('active');
+        //             });
+                    
+        //             // Add active class to clicked item
+        //             cellItem.classList.add('active');
+                    
+        //             // Show cell details
+        //             showCellDetails(cellName);
+        //         });
+                
+        //         cellListContainer.appendChild(cellItem);
+        //     });
+            
+        //     // Add search functionality
+        //     document.getElementById('cellSearch').addEventListener('input', function() {
+        //         const searchTerm = this.value.toLowerCase();
+        //         document.querySelectorAll('.cell-item').forEach(item => {
+        //             const cellName = item.dataset.cellName.toLowerCase();
+        //             if (cellName.includes(searchTerm)) {
+        //                 item.style.display = 'flex';
+        //             } else {
+        //                 item.style.display = 'none';
+        //             }
+        //         });
+        //     });
+            
+        //     // Auto-select first cell if available
+        //     if (cells.length > 0) {
+        //         document.querySelector('.cell-item').classList.add('active');
+        //         showCellDetails(cells[0]);
+        //     } else {
+        //         document.getElementById('noCellSelected').style.display = 'block';
+        //         document.getElementById('cellDetail').style.display = 'none';
+        //     }
+        // }
+
+        
+        function showCellDetails(cellName) {
+            if (!currentParser || !cellName) return;
+            
+            currentCell = cellName;
+            
+            // Show detail panel
+            document.getElementById('noCellSelected').style.display = 'none';
+            document.getElementById('cellDetail').style.display = 'block';
+            
+            // Update header
+            document.getElementById('selectedCellName').textContent = cellName;
+            
+            // Get cell data
+            const cellData = currentParser.getCellData(cellName);
+            const leakage = currentParser.getCellLeakagePower([cellName])[cellName];
+            const pins = currentParser.getLibPinInfo([cellName], currentFilters.pins);
+            
+            // Update stats
+            document.getElementById('cellAreaStat').textContent = cellData.area || 'N/A';
+            
+            // Format leakage value
+            let leakageDisplay = 'N/A';
+            if (leakage) {
+                const units = currentParser.getUnit();
+                const leakagePowerUnit = units.leakage_power_unit || '1nW';
+                let leakageValue = parseFloat(leakage);
+                
+                if (!isNaN(leakageValue)) {
+                    if (leakagePowerUnit === '1nW') {
+                        leakageValue *= 1000; // Convert to pW
+                    } else if (leakagePowerUnit === '1uW') {
+                        leakageValue *= 1000000;
+                    } else if (leakagePowerUnit === '1mW') {
+                        leakageValue *= 1000000000;
+                    }
+                    leakageDisplay = leakageValue.toFixed(2) + ' pW';
+                }
+            }
+            document.getElementById('cellLeakageStat').textContent = leakageDisplay;
+            
+            // Calculate pin count
+            let pinCount = 0;
+            if (pins[cellName] && pins[cellName].pin) {
+                pinCount = Object.keys(pins[cellName].pin).length;
+            }
+            document.getElementById('cellPinCount').textContent = pinCount;
+            
+            // Update overview tab
+            displayOverview(cellName, cellData, leakage);
+            
+            // Update pins tab
+            displayPinInfo(pins);
+            
+            // Update raw data tab
+            document.getElementById('rawDataResult').textContent = JSON.stringify(cellData, null, 2);
+            
+            // Reset tabs to first tab
+            openTab({currentTarget: document.querySelector('.tablinks')}, 'overviewTab');
+        }
+        
+        function displayOverview(cellName, cellData, leakage) {
+            const overviewResult = document.getElementById('overviewResult');
+            
+            let overviewHTML = `
+                <div class="overview-grid">
+                    <div class="overview-item">
+                        <strong>Cell Name:</strong> ${cellName}
+                    </div>
+                    <div class="overview-item">
+                        <strong>Area:</strong> ${cellData.area || 'N/A'}
+                    </div>
+            `;
+            
+            // Leakage power with unit conversion
+            if (leakage) {
+                const units = currentParser.getUnit();
+                const leakagePowerUnit = units.leakage_power_unit || '1nW';
+                let leakageValue = parseFloat(leakage);
+                let leakageUnit = 'pW';
+                
+                if (!isNaN(leakageValue)) {
+                    if (leakagePowerUnit === '1nW') {
+                        leakageValue *= 1000;
+                    } else if (leakagePowerUnit === '1uW') {
+                        leakageValue *= 1000000;
+                        leakageUnit = 'pW';
+                    } else if (leakagePowerUnit === '1mW') {
+                        leakageValue *= 1000000000;
+                        leakageUnit = 'pW';
+                    } else {
+                        leakageUnit = leakagePowerUnit;
+                    }
+                    
+                    overviewHTML += `<div class="overview-item">
+                        <strong>Leakage Power:</strong> ${leakageValue.toFixed(4)} ${leakageUnit}
+                    </div>`;
+                }
+            }
+            
+            // Add unit information
+            const units = currentParser.getUnit();
+            if (Object.keys(units).length > 0) {
+                overviewHTML += `<div class="overview-item"><strong>Units:</strong></div>`;
+                for (const unit in units) {
+                    overviewHTML += `<div class="overview-item">${unit}: ${units[unit]}</div>`;
+                }
+            }
+            
+            overviewHTML += `</div>`;
+            
+            overviewResult.innerHTML = overviewHTML;
+        }
+        
+        function displayPinInfo(pins) {
+            const pinsResult = document.getElementById('pinsResult');
+            
+            if (!pins[currentCell] || !pins[currentCell].pin) {
+                pinsResult.innerHTML = '<p>No pin information found for this cell.</p>';
+                return;
+            }
+            
+            let pinsHTML = '';
+            
+            for (const pinName in pins[currentCell].pin) {
+                const pinData = pins[currentCell].pin[pinName];
+                
+                pinsHTML += `<div class="pin-info">`;
+                pinsHTML += `<div class="pin-header">`;
+                pinsHTML += `<div>Pin: ${pinName}</div>`;
+                pinsHTML += `<div class="pin-direction">${pinData.direction || 'N/A'}</div>`;
+                pinsHTML += `</div>`;
+                
+                pinsHTML += `<div class="pin-props">`;
+                if (pinData.direction) {
+                    pinsHTML += `<div class="prop"><strong>Direction:</strong> ${pinData.direction}</div>`;
+                }
+                if (pinData.function) {
+                    pinsHTML += `<div class="prop"><strong>Function:</strong> ${pinData.function}</div>`;
+                }
+                if (pinData.capacitance) {
+                    pinsHTML += `<div class="prop"><strong>Capacitance:</strong> ${pinData.capacitance}</div>`;
+                }
+                pinsHTML += `</div>`;
+                
+                // Display timing information
+                if (pinData.timing && pinData.timing.length > 0) {
+                    pinsHTML += `<div class="timing-header">Timing Information:</div>`;
+                    
+                    for (const timing of pinData.timing) {
+                        pinsHTML += `<div class="timing-info">`;
+                        
+                        if (timing.related_pin) {
+                            pinsHTML += `<div><strong>Related Pin:</strong> ${timing.related_pin}</div>`;
+                        }
+                        if (timing.timing_sense) {
+                            pinsHTML += `<div><strong>Timing Sense:</strong> ${timing.timing_sense}</div>`;
+                        }
+                        if (timing.timing_type) {
+                            pinsHTML += `<div><strong>Timing Type:</strong> ${timing.timing_type}</div>`;
+                        }
+                        if (timing.when) {
+                            pinsHTML += `<div><strong>When Condition:</strong> ${timing.when}</div>`;
+                        }
+                        
+                        if (timing.table_type) {
+                            for (const tableType in timing.table_type) {
+                                const table = timing.table_type[tableType];
+                                pinsHTML += `<div class="table-info">`;
+                                pinsHTML += `<div><strong>Table Type:</strong> ${tableType}</div>`;
+                                if (table.index_1) {
+                                    pinsHTML += `<div><strong>Index 1:</strong> ${table.index_1}</div>`;
+                                }
+                                if (table.index_2) {
+                                    pinsHTML += `<div><strong>Index 2:</strong> ${table.index_2}</div>`;
+                                }
+                                if (table.values) {
+                                    pinsHTML += `<div><strong>Values:</strong> ${table.values}</div>`;
+                                }
+                                pinsHTML += `</div>`;
+                            }
+                        }
+                        
+                        pinsHTML += `</div>`;
+                    }
+                }
+                
+                // Display internal power information
+                if (pinData.internal_power && pinData.internal_power.length > 0) {
+                    pinsHTML += `<div class="power-header">Internal Power Information:</div>`;
+                    
+                    for (const power of pinData.internal_power) {
+                        pinsHTML += `<div class="power-info">`;
+                        
+                        if (power.related_pin) {
+                            pinsHTML += `<div><strong>Related Pin:</strong> ${power.related_pin}</div>`;
+                        }
+                        if (power.when) {
+                            pinsHTML += `<div><strong>When Condition:</strong> ${power.when}</div>`;
+                        }
+                        
+                        if (power.table_type) {
+                            for (const tableType in power.table_type) {
+                                const table = power.table_type[tableType];
+                                pinsHTML += `<div class="table-info">`;
+                                pinsHTML += `<div><strong>Table Type:</strong> ${tableType}</div>`;
+                                if (table.index_1) {
+                                    pinsHTML += `<div><strong>Index 1:</strong> ${table.index_1}</div>`;
+                                }
+                                if (table.index_2) {
+                                    pinsHTML += `<div><strong>Index 2:</strong> ${table.index_2}</div>`;
+                                }
+                                if (table.values) {
+                                    pinsHTML += `<div><strong>Values:</strong> ${table.values}</div>`;
+                                }
+                                pinsHTML += `</div>`;
+                            }
+                        }
+                        
+                        pinsHTML += `</div>`;
+                    }
+                }
+                
+                pinsHTML += `</div>`;
+            }
+            
+            pinsResult.innerHTML = pinsHTML;
+        }
+        
+        function openTab(evt, tabName) {
+            const tabcontent = document.getElementsByClassName("tabcontent");
+            for (let i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("visible");
+            }
+            
+            const tablinks = document.getElementsByClassName("tablinks");
+            for (let i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            
+            document.getElementById(tabName).classList.add("visible");
+            evt.currentTarget.classList.add("active");
+        }
+    </script>
+
+
+    <footer class="section" style="text-align: center; margin: 20px auto; max-width: 1400px;">
+        <p style="color: #43a0a7; font-size: 0.9em;">
+            &copy; 2025 Liberty File Parser Tool. All rights reserved.<br>
+            GitHub Repository: <a href="https://github.com/yzt000000/LibertyParser.git" 
+            style="color: var(--secondary-color); text-decoration: none; font-weight: 600;" 
+            target="_blank" rel="noopener">https://github.com/yzt000000/LibertyParser.git</a>
+        </p>
+    </footer>
+
+</body>
+</html>
